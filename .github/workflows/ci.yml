@@ -14,8 +14,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    container:
-      image: minio/mc
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -39,10 +37,16 @@ jobs:
     - name: test
       run: |
         set -ex -o pipefail
-        env | sort
+        curl https://dl.min.io/client/mc/release/linux-amd64/mc \
+          --create-dirs -s \
+          -o $HOME/minio-binaries/mc
+        chmod +x $HOME/minio-binaries/mc
+        export PATH=$PATH:$HOME/minio-binaries/
         mc --version
+        set +x
         mc alias set src ${SRC_S3_HOST} ${SRC_S3_ACCESS_KEY} ${SRC_S3_SECRET_KEY}
         mc alias set dst ${DST_S3_HOST} ${DST_S3_ACCESS_KEY} ${DST_S3_SECRET_KEY}
+        set -x
         mc ls src
         mc ls dst
         mc mirror src/pg-dump-to-s3 dst/pg-dump-to-s3
