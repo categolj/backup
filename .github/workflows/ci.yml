@@ -49,5 +49,5 @@ jobs:
         set -x
         mc ls src
         mc ls dst
-        mc mirror src/pg-dump-to-s3 dst/pg-dump-to-s3
-        mc mirror src/vault-backend dst/vault-backend
+        mc mirror src/pg-dump-to-s3 dst/pg-dump-to-s3 --overwrite
+        mc mirror src/vault-backend dst/vault-backend --overwrite
