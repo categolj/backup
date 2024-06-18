@@ -1,24 +1,49 @@
 name: Backup
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
   schedule:
-    - cron: '33 3 * * *'
-
+  - cron: '33 3 * * *'
+  workflow_dispatch: { }
 permissions:
   contents: read
 
 jobs:
   build:
     name: Build
-    runs-on: "ubuntu-22.04"
+    runs-on: "ubuntu-latest"
+    permissions:
+      id-token: write
+      contents: read
+    container:
+      image: minio/mc
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: test
-        run: |
-          env | sort
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Import Secrets
+      if: env.ACT != 'true'
+      id: secrets
+      uses: hashicorp/vault-action@v3.0.0
+      with:
+        exportToken: true
+        exportEnv: true
+        method: jwt
+        url: ${{ secrets.VAULT_ADDR }}
+        role: cicd
+        secrets: |
+          kv/data/cicd/r2 endpoint | SRC_S3_HOST ;
+          kv/data/cicd/r2 access_key_id | SRC_S3_ACCESS_KEY ;
+          kv/data/cicd/r2 secret_access_key | SRC_S3_SECRET_KEY ;
+          kv/data/cicd/minio endpoint | DST_S3_HOST ;
+          kv/data/cicd/minio access_key_id | DST_S3_ACCESS_KEY ;
+          kv/data/cicd/minio secret_access_key | DST_S3_SECRET_KEY ;
+    - name: test
+      run: |
+        set -ex -o pipefail
+        env | sort
+        mc --version
+        mc alias set src ${SRC_S3_HOST} ${SRC_S3_ACCESS_KEY} ${SRC_S3_SECRET_KEY}
+        mc alias set dst ${DST_S3_HOST} ${DST_S3_ACCESS_KEY} ${DST_S3_SECRET_KEY}
+        mc ls src
+        mc ls dst
+        mc mirror src/pg-dump-to-s3 dst/pg-dump-to-s3
+        mc mirror src/vault-backend dst/vault-backend
