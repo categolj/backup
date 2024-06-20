@@ -34,7 +34,7 @@ jobs:
           kv/data/cicd/minio endpoint | DST_S3_HOST ;
           kv/data/cicd/minio access_key_id | DST_S3_ACCESS_KEY ;
           kv/data/cicd/minio secret_access_key | DST_S3_SECRET_KEY ;
-    - name: test
+    - name: Backup
       run: |
         set -ex -o pipefail
         curl https://dl.min.io/client/mc/release/linux-amd64/mc \
@@ -47,7 +47,5 @@ jobs:
         mc alias set src ${SRC_S3_HOST} ${SRC_S3_ACCESS_KEY} ${SRC_S3_SECRET_KEY}
         mc alias set dst ${DST_S3_HOST} ${DST_S3_ACCESS_KEY} ${DST_S3_SECRET_KEY}
         set -x
-        mc ls src
-        mc ls dst
         mc mirror src/pg-dump-to-s3 dst/pg-dump-to-s3 --overwrite
         mc mirror src/vault-backend dst/vault-backend --overwrite
